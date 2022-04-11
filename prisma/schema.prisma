@@ -1,0 +1,31 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model device {
+  id           Int    @id @map("_id")
+  class        String @map("_class")
+  brightness   Int
+  deviceName   String
+  deviceStatus String
+  deviceType   String
+  hue          Int
+  roomID       String
+  saturation   Int
+}
+
+model room {
+  id       Int     @id @map("_id")
+  class    String  @map("_class")
+  main     Boolean
+  roomName String
+}
+
+model unassignedDevice {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+}
