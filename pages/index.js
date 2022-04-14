@@ -1,10 +1,18 @@
 import Head from 'next/head'
 import styles from '../styles/Home.module.css'
 import {PrismaClient} from '@prisma/client'
-import {Client} from "@stomp/stompjs";
+import WebSocket from 'ws';
+
+
+Object.assign(global, { WebSocket: require('websocket').w3cwebsocket });
+
+const StompJs = require('@stomp/stompjs');
+
 
 
 export async function getStaticProps() {
+
+
     const prisma = new PrismaClient()
     const devices = await prisma.device.findMany()
     return {
@@ -12,41 +20,29 @@ export async function getStaticProps() {
     }
 }
 
+export function IndexPage() {
+
+}
 
 export default function Home({devices}) {
 
-    const stompClient = new Client();
-    stompClient.configure({
-        brokerURL: 'ws://192.168.1.214:9999/mywebsocket/websocket/',
-        connectHeaders: {},
-        reconnectDelay: 2000,
-        heartbeatIncoming: 0,
-        heartbeatOutgoing: 20000,
-        onConnect: () => {
-            console.log("On connect");
-        },
-        onStompError: (frame) => {
-            console.log('Broker reported error: ' + frame.headers['message']);
-            console.log('Additional details: ' + frame.body);
-        },
-        onDisconnect: (frame) => {
-            console.log("Stomp Disconnect", frame);
-        },
-        onWebSocketClose: (frame) => {
-            console.log("Stomp WebSocket Closed", frame);
-        },
-        debug: (str) => {
-            console.log(new Date(), str);
-        },
-        onUnhandledMessage: (msg) => {
-            console.log(msg);
-        }
+   const client = new StompJs.Client({
+        //brokerURL: 'ws://localhost:15674/ws', // RabbitMQ (should work)
+        brokerURL: 'ws://192.168.1.214:9999/mywebsocket/websocket/', // Spring app (should fail)
+        reconnectDelay: 5000,
+        heartbeatIncoming: 4000,
+        heartbeatOutgoing: 4000,
+        logRawCommunication: true,
+        debug: (x) => console.log(x),
     });
 
-    stompClient.activate();
+    client.onConnect = function (frame) {
+        console.log('onConnect called');
+    };
 
+    client.activate();
     const handleClick = (e, id) => {
-        stompClient.publish({
+        client.publish({
             destination: "/device/changeDeviceStatus/" + id, body: JSON.stringify({
                 task: "status change",
                 status: "Off"
